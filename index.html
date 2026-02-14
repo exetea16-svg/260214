@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>For You</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --ink:#1b1b1b;
+      --muted:#6b6b6b;
+      --card:#f6f2f4;
+      --stroke:#e9e3e6;
+      --accent:#d8a8b7;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "SF Pro Text", Arial, sans-serif;
+      background: #f2f2f2;
+      color:var(--ink);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      padding:18px;
+    }
+
+    /* iPhone-ish frame */
+    .phone{
+      width:min(420px, 100%);
+      background: var(--bg);
+      border: 1px solid #ddd;
+      border-radius: 34px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.12);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .safe-top{
+      height: env(safe-area-inset-top);
+      background: var(--bg);
+    }
+
+    .topbar{
+      padding: 18px 22px 8px;
+      text-align:center;
+    }
+    .time{
+      font-size: 56px;
+      font-weight: 300;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .date{
+      margin-top:10px;
+      font-size: 16px;
+      color: var(--muted);
+    }
+    .dday{
+      margin-top:8px;
+      font-size: 15px;
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    /* Dock icons */
+    .tabs{
+      display:flex;
+      gap:18px;
+      justify-content:center;
+      padding: 12px 18px 6px;
+    }
+    .tab{
+      border:0;
+      background:transparent;
+      padding:0;
+      cursor:pointer;
+      text-align:center;
+      color: var(--muted);
+      width:78px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab .icon{
+      width:58px; height:58px;
+      border-radius: 999px;
+      border: 2px solid var(--stroke);
+      padding:3px;
+      margin:0 auto 8px;
+      background: #fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .tab .icon img{
+      width:100%;
+      height:100%;
+      border-radius: 999px;
+      object-fit:cover;
+    }
+    .tab span{
+      font-size: 14px;
+    }
+    .tab.active{
+      color: var(--ink);
+    }
+    .tab.active .icon{
+      border-color: var(--accent);
+      box-shadow: 0 8px 22px rgba(216,168,183,.25);
+    }
+
+    .content{
+      padding: 10px 18px 18px;
+    }
+    .page{
+      display:none;
+      animation: fade .18s ease;
+    }
+    .page.active{display:block;}
+    @keyframes fade{from{opacity:.2; transform:translateY(4px)}to{opacity:1; transform:none}}
+
+    .h1{
+      font-family: ui-serif, Georgia, "Times New Roman", serif;
+      font-style: italic;
+      color: #c7a8b3;
+      font-size: 44px;
+      margin: 10px 4px 10px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 14px;
+      margin: 12px 0;
+    }
+    .card p{
+      margin:0;
+      line-height:1.65;
+      font-size: 15.5px;
+      color:#2a2a2a;
+      white-space:pre-wrap;
+    }
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size: 12.5px;
+    }
+
+    /* Album grid */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+    .thumb{
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
+      overflow:hidden;
+      border:1px solid var(--stroke);
+      background:#fff;
+      cursor:pointer;
+    }
+    .thumb img{
+      width:100%; height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    /* Modal */
+    .modal{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .modal.open{display:flex;}
+    .modal-inner{
+      width:min(520px, 100%);
+      background:#fff;
+      border-radius: 20px;
+      overflow:hidden;
+      box-shadow: 0 20px 70px rgba(0,0,0,.28);
+    }
+    .modal-inner img{
+      width:100%;
+      height:auto;
+      display:block;
+    }
+    .modal-close{
+      width:100%;
+      border:0;
+      padding:14px 16px;
+      background:#fff;
+      cursor:pointer;
+      font-size: 14px;
+      color: var(--muted);
+      border-top: 1px solid #eee;
+    }
+
+    .safe-bottom{
+      height: calc(16px + env(safe-area-inset-bottom));
+      display:flex;
+      justify-content:center;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+      align-items:flex-end;
+      background: var(--bg);
+    }
+    .bar{
+      width: 140px;
+      height: 5px;
+      border-radius: 999px;
+      background: #e6e6e6;
+    }
+
+    /* Password overlay */
+    .lock{
+      position:absolute;
+      inset:0;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index: 50;
+    }
+    .lock-box{
+      width:min(340px, 100%);
+      background:#fff;
+      border:1px solid var(--stroke);
+      border-radius: 22px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.12);
+      padding: 18px;
+      text-align:center;
+    }
+    .lock-title{
+      font-size: 18px;
+      font-weight: 650;
+      margin-bottom: 6px;
+    }
+    .lock-sub{
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .pin{
+      width:100%;
+      border:1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 16px;
+      outline:none;
+      text-align:center;
+      letter-spacing: 4px;
+    }
+    .lock-actions{
+      display:flex;
+      gap:10px;
+      margin-top: 12px;
+    }
+    .lock-actions button{
+      flex:1;
+      border-radius: 14px;
+      border:1px solid var(--stroke);
+      padding: 12px 14px;
+      background:#fff;
+      cursor:pointer;
+      font-size: 14px;
+    }
+    .lock-actions button.primary{
+      border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(216,168,183,.18);
+    }
+    .err{
+      margin-top:10px;
+      color:#b84b5a;
+      font-size: 13px;
+      min-height: 18px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="phone">
+    <!-- Password gate -->
+    <div class="lock" id="lock">
+      <div class="lock-box">
+        <div class="lock-title">Enter Passcode</div>
+        <div class="lock-sub">Hint: it’s 4 digits.</div>
+        <input class="pin" id="pin" inputmode="numeric" maxlength="4" placeholder="••••" />
+        <div class="lock-actions">
+          <button id="clearBtn">Clear</button>
+          <button class="primary" id="unlockBtn">Unlock</button>
+        </div>
+        <div class="err" id="err"></div>
+      </div>
+    </div>
+
+    <div class="safe-top"></div>
+
+    <div class="topbar">
+      <div class="time" id="time">--:--</div>
+      <div class="date" id="date">Loading…</div>
+      <div class="dday" id="dday">D+</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-page="home">
+        <div class="icon"><img src="icon-home.jpg" alt="home icon"></div>
+        <span>home</span>
+      </button>
+      <button class="tab" data-page="album">
+        <div class="icon"><img src="icon-album.jpg" alt="album icon"></div>
+        <span>album</span>
+      </button>
+      <button class="tab" data-page="letter">
+        <div class="icon"><img src="icon-letter.jpg" alt="letter icon"></div>
+        <span>letter</span>
+      </button>
+    </div>
+
+    <div class="content">
+      <!-- HOME -->
+      <section class="page active" id="home">
+        <div class="h1">Home</div>
+        <div class="card">
+          <p>
+Hi Campbell,
+
+I made this little page just for you.
+
+We already have lots of photos of us in Canada, so I thought it’d be nicer to add some new ones like cute screenshots.
+
+And I also put a few new photos of me that I think you’ll like :3
+
+I hope you like my Valentine’s gift.
+          </p>
+        </div>
+      </section>
+
+      <!-- ALBUM -->
+      <section class="page" id="album">
+        <div class="h1">Album</div>
+        <div class="card">
+          <div class="grid" id="grid">
+            <div class="thumb"><img src="p1.jpg" alt="p1"></div>
+            <div class="thumb"><img src="p2.jpg" alt="p2"></div>
+            <div class="thumb"><img src="p3.jpg" alt="p3"></div>
+            <div class="thumb"><img src="p4.jpg" alt="p4"></div>
+            <div class="thumb"><img src="p5.jpg" alt="p5"></div>
+            <div class="thumb"><img src="p6.jpg" alt="p6"></div>
+            <div class="thumb"><img src="p7.jpg" alt="p7"></div>
+            <div class="thumb"><img src="p8.jpg" alt="p8"></div>
+            <div class="thumb"><img src="p9.jpg" alt="p9"></div>
+          </div>
+          <div class="hint">Tap any photo to view it bigger.</div>
+        </div>
+      </section>
+
+      <!-- LETTER -->
+      <section class="page" id="letter">
+        <div class="h1">Letter</div>
+
+        <div class="card">
+          <p>
+Since our three-month anniversary was so close to Valentine’s Day, I wanted to do something special for us.
+And I thought it would be really cool to make a whole page as a gift :))
+
+I can’t believe it’s already been over three months since we got together, and four months since I met you for the first time.
+
+We’ve been through some difficulties and changes during that time, but it was totally worth it.
+I’m really glad we didn’t give up or run away, and instead chose to try harder and make this work.
+Because I’m genuinely so much happier with you.
+
+I’m always thinking about you — what you’re up to, how you’re feeling, whether anything has been hard for you lately, and what made you happy today.
+Even when I’m just walking around, the smallest things remind me of you.
+Sometimes it’s literally just a motorcycle passing by.
+
+And whenever I catch myself doing that, it hits me again how much I love you and how much I miss you.
+It’s sad that we can’t see each other every day and just hug whenever we want. But at the same time, I think this is helping me grow into a more mature girlfriend.
+
+Even if we lived close to each other, as we grow up we’d still need more and more patience.
+So I’m trying to see this as part of building a healthier, happier future for us and not just something we have to do because we’re long distance.
+
+When we miss each other a lot, let’s keep doing what we’re doing — texting, calling, and actually communicating.
+And let’s also plan properly because sometimes I miss you too much:( Things like when we’re going to see each other next, how long, and what kind of budget makes sense.
+
+And one day, the future where we can see each other every day, hug, take care of each other, and love each other will come to us :)
+
+I love you so much, Campbell.
+More than you can imagine.
+
+Love,
+Amy
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="safe-bottom"><div class="bar"></div></div>
+  </div>
+
+  <!-- Image modal -->
+  <div class="modal" id="imgModal" aria-hidden="true">
+    <div class="modal-inner">
+      <img id="modalImg" src="" alt="">
+      <button class="modal-close" id="imgClose">Close</button>
+    </div>
+  </div>
+
+  <script>
+    /** SETTINGS **/
+    const PASSCODE = "1109";
+    const ANNIV = { year: 2025, month: 11, day: 9 }; // month: 1-12
+    const OTTAWA_TZ = "America/Toronto";
+
+    /** Password Gate **/
+    const lock = document.getElementById('lock');
+    const pin = document.getElementById('pin');
+    const err = document.getElementById('err');
+    document.getElementById('unlockBtn').addEventListener('click', ()=>{
+      if((pin.value||"").trim() === PASSCODE){
+        lock.style.display = "none";
+      } else {
+        err.textContent = "Wrong code.";
+        pin.value = "";
+        pin.focus();
+      }
+    });
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      pin.value = "";
+      err.textContent = "";
+      pin.focus();
+    });
+    pin.addEventListener('keydown', (e)=>{ if(e.key==="Enter") document.getElementById('unlockBtn').click(); });
+
+    /** Time + D-day (Ottawa) **/
+    function getParts(date, timeZone){
+      const fmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year:"numeric", month:"2-digit", day:"2-digit",
+        hour:"2-digit", minute:"2-digit", hour12:false
+      });
+      const parts = fmt.formatToParts(date);
+      const map = {};
+      parts.forEach(p=>{ if(p.type!=="literal") map[p.type] = p.value; });
+      return map;
+    }
+
+    function updateClock(){
+      const now = new Date();
+      const p = getParts(now, OTTAWA_TZ);
+
+      document.getElementById("time").textContent = `${p.hour}:${p.minute}`;
+
+      const dateLine = new Intl.DateTimeFormat("en-CA", {
+        timeZone: OTTAWA_TZ,
+        weekday:"long",
+        month:"long",
+        day:"numeric"
+      }).format(now);
+      document.getElementById("date").textContent = dateLine;
+
+      const todayUTC = Date.UTC(Number(p.year), Number(p.month)-1, Number(p.day));
+      const baseUTC  = Date.UTC(ANNIV.year, ANNIV.month-1, ANNIV.day);
+      const diff = Math.floor((todayUTC - baseUTC) / 86400000);
+
+      document.getElementById("dday").textContent = (diff===0) ? "D-Day" : `D+${diff}`;
+    }
+
+    updateClock();
+    setInterval(updateClock, 10000);
+
+    /** Tabs **/
+    const tabs = document.querySelectorAll('.tab');
+    const pages = document.querySelectorAll('.page');
+    tabs.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        tabs.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const id = btn.dataset.page;
+        pages.forEach(p=>p.classList.toggle('active', p.id===id));
+      });
+    });
+
+    /** Album modal **/
+    const imgModal = document.getElementById('imgModal');
+    const modalImg = document.getElementById('modalImg');
+    document.getElementById('grid').addEventListener('click', (e)=>{
+      const img = e.target.closest('img');
+      if(!img) return;
+      modalImg.src = img.src;
+      imgModal.classList.add('open');
+    });
+    document.getElementById('imgClose').addEventListener('click', ()=> imgModal.classList.remove('open'));
+    imgModal.addEventListener('click', (e)=>{ if(e.target === imgModal) imgModal.classList.remove('open'); });
+  </script>
+</body>
+</html>
